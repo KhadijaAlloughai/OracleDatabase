@@ -1,0 +1,56 @@
+CREATE TABLE Employee(
+    SSN NUMBER(9) PRIMARY KEY,
+    FName VARCHAR2(20) NOT NULL,
+    LName VARCHAR2(20) NOT NULL,
+    BD DATE,
+    Gender NUMBER(1) CHECK (gender IN (0, 1))
+);
+
+UPDATE Employee SET gender = '0' WHERE gender = 'Female';
+
+CREATE TABLE Department(
+    DeparNumber NUMBER(9) PRIMARY KEY,
+    DeparName VARCHAR2(20) NOT NULL,
+    hiringDate DATE 
+);
+
+CREATE TABLE Department_Location(
+    DeparNumber NUMBER(9) REFERENCES Department(DeparNumber) ON DELETE CASCADE,
+    Location VARCHAR2(20)
+);
+
+CREATE TABLE Dependent(
+    DepNumber NUMBER(9) PRIMARY KEY,
+    BD DATE,
+    Gender NUMBER(1) CHECK (gender IN (0, 1))
+);
+
+ALTER TABLE Dependent ADD(
+    SSN NUMBER(9) REFERENCES Employee(SSN) ON DELETE CASCADE
+);
+
+CREATE TABLE Project(
+    PNumber NUMBER(9) PRIMARY KEY,
+    PName VARCHAR2(20) NOT NULL,
+    Location VARCHAR2(20) NOT NULL,
+    City VARCHAR2(20)
+);
+
+ALTER TABLE Project MODIFY City VARCHAR2(20);
+
+
+CREATE TABLE WorkingHours(
+    SSN NUMBER(9) REFERENCES Employee(SSN) ON DELETE CASCADE,
+    PNumber NUMBER(9) REFERENCES Project(PNumber) ON DELETE CASCADE,
+    Hours NUMBER(5,2) NOT NULL,
+    PRIMARY KEY(SSN, PNumber)
+);
+
+ALTER TABLE Employee ADD (
+    SupervisorId NUMBER(9) REFERENCES Employee(SSN) ON DELETE CASCADE,
+    DeparNumber NUMBER(9) REFERENCES Department(DeparNumber) ON DELETE CASCADE
+);
+
+ALTER TABLE Department ADD (
+    SSN NUMBER(9) REFERENCES Employee(SSN) ON DELETE CASCADE
+);
