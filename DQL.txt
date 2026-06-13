@@ -1,0 +1,172 @@
+DML --> DELETE FROM WorkingHours WHERE SSN = 105;
+
+
+INSERT INTO Dependent (DepName, BD, Gender, SSN) 
+VALUES ('Amal', TO_DATE('2018-04-12', 'YYYY-MM-DD'), 0, 101);
+
+INSERT INTO Dependent (DepName, BD, Gender, SSN) 
+VALUES ('Faisal', TO_DATE('2021-09-05', 'YYYY-MM-DD'), 1, 102);
+
+INSERT INTO Dependent (DepName, BD, Gender, SSN) 
+VALUES ('Maryahm', TO_DATE('1965-01-20', 'YYYY-MM-DD'), 0, 103);
+
+INSERT INTO Dependent (DepName, BD, Gender, SSN) 
+VALUES ('Sultan', TO_DATE('2023-07-14', 'YYYY-MM-DD'), 1, 100);
+
+INSERT INTO Dependent (DepName, BD, Gender, SSN) 
+VALUES ('Abdullah', TO_DATE('2019-11-30', 'YYYY-MM-DD'), 1, 104);
+
+----------------------------------DQL----------------------------------------
+-- From → Join → where → Group by → having → select → order by 
+--1-Retrieve the first and last name of all employees along with their gender and birth date.
+SELECT 
+    FName AS First_Name, 
+    LName AS Last_Name, 
+    Gender,
+    BD AS Birth_Date
+FROM Employee;
+
+--2-List all employees who work in a specific department.
+-- From → Join → where → Group by → having → select → order by 
+SELECT 
+    SSN, 
+    FName || ' ' || LName AS Employee_Name, 
+    Deparnumber AS Department_ID
+FROM Employee
+WHERE Deparnumber = (
+    SELECT Deparnumber 
+    FROM Department 
+    WHERE DeparName = 'HR Department');
+    
+    select * from department;
+    select * from employee;
+    
+--3-Display all projects along with their location and city.
+SELECT 
+    PName AS Project_Name, 
+    Location, 
+    City
+FROM Project;
+
+--4-Find the employee who manages each department along with their hire date.
+-- From → Join → where → Group by → having → select → order by 
+SELECT 
+    d.DeparNumber AS Department_ID,
+    d.DeparName AS Department_Name,
+    e.FName || ' ' || e.LName AS Manager_Name,
+    d.HiringDate AS Manager_Hire_Date
+FROM Department d
+INNER JOIN Employee e ON d.SSN = e.SSN;
+
+--5-Retrieve all dependents associated with a specific employee.
+SELECT 
+    e.SSN AS Employee_SSN,
+    e.FName || ' ' || e.LName AS Employee_Name,
+    dp.DepName AS Dependent_Name,
+    dp.BD AS Dependent_Birth_Date,
+    dp.Gender AS Dependent_Gender
+FROM Employee e
+INNER JOIN Dependent dp ON e.SSN = dp.SSN
+WHERE e.SSN = 100;
+
+--6-List all employees who work on a specific project along with their working hours.
+SELECT 
+    e.SSN AS Employee_SSN,
+    e.FName || ' ' || e.LName AS Employee_Name,
+    p.PName AS Project_Name,
+    w.Hours AS Working_Hours
+FROM Employee e
+INNER JOIN WorkingHours w ON e.SSN = w.SSN
+INNER JOIN Project p  ON w.PNumber = p.PNumber   
+WHERE p.PName = 'Cloud System';
+
+select * from project;
+--7-Display all departments along with their locations.
+
+SELECT 
+    d.DeparNumber AS Department_ID,
+    d.DeparName AS Department_Name,
+    dl.DLocation AS Department_Location
+FROM Department d
+INNER JOIN Dept_Locations dl ON d.DeparNumber = dl.DeparNumber;
+-- EMPLOYEES ARE WORKING UNDER 101 employee_ID
+UPDATE Employee SET SupervisorId = 101 WHERE SSN IN (100, 103);
+
+-- EMPLOYEES ARE WORKING UNDER 104 employee_ID
+UPDATE Employee SET SupervisorId = 104 WHERE SSN = 102;
+
+-- SUPERVISERS WHO THERE ARE NO BODY ABOVE THEM
+UPDATE Employee SET SupervisorId = NULL WHERE SSN IN (101, 104);
+
+select * from project;
+
+
+--8-Find all employees supervised by a specific employee.
+SELECT 
+    e.SSN AS Employee_SSN,
+    e.FName || ' ' || e.LName AS Employee_Name,
+    m.SSN AS Supervisor_SSN,
+    m.FName || ' ' || m.LName AS Supervisor_Name
+FROM Employee e
+LEFT JOIN Employee m ON e.SUPERVISORID = m.SSN
+ORDER BY e.SSN;
+
+SELECT 
+    m.SSN AS Supervisor_SSN,
+    m.FName || ' ' || m.LName AS Supervisor_Name,
+    e.SSN AS Employee_SSN,
+    e.FName || ' ' || e.LName AS Employee_Name
+FROM Employee e
+INNER JOIN Employee m ON e.SUPERVISORID = m.SSN
+WHERE m.SSN = 101;
+
+SELECT 
+    m.SSN AS Supervisor_SSN,
+    m.FName || ' ' || m.LName AS Supervisor_Name,
+    e.SSN AS Employee_SSN,
+    e.FName || ' ' || e.LName AS Employee_Name
+FROM Employee e
+INNER JOIN Employee m ON e.SUPERVISORID = m.SSN
+WHERE m.SSN = 104;
+
+
+--9-Retrieve all projects assigned to a specific department.
+SELECT 
+    d.deparnumber AS Department_ID,
+    d.deparname AS Department_Name,
+    p.pnumber AS Project_Number,
+    p.pname AS Project_Name,
+    p.location AS Project_Location
+FROM Project p
+INNER JOIN Department d ON p.deparnumber = d.deparnumber
+WHERE d.deparnumber = 10;
+
+SELECT 
+    d.deparnumber AS Department_ID,
+    d.deparname AS Department_Name,
+    p.pnumber AS Project_Number,
+    p.pname AS Project_Name,
+    p.location AS Project_Location
+FROM Project p
+INNER JOIN Department d ON p.deparnumber = d.deparnumber
+WHERE d.deparnumber = 13;
+
+SELECT 
+    d.deparnumber AS Department_ID,
+    d.deparname AS Department_Name,
+    p.pnumber AS Project_Number,
+    p.pname AS Project_Name,
+    p.location AS Project_Location
+FROM Project p
+INNER JOIN Department d ON p.deparnumber = d.deparnumber
+WHERE d.deparnumber = 14;
+select * from dependent;
+
+--10-List all female/male dependents along with their birth date.
+
+SELECT 
+    depname,
+    Gender,
+    bd AS Birth_Date
+FROM Dependent
+ORDER BY Gender, depname;
