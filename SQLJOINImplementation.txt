@@ -1,0 +1,39 @@
+
+--Inner Join --> finding the intersection between two groups
+SELECT 
+    e.SSN, 
+    e.FName || ' ' || e.LName AS Employee_Name, 
+    d.DeparName AS Department_Name, 
+    p.PName AS Project_Name
+FROM Employee e
+INNER JOIN Department d ON e.Deparnumber = d.Deparnumber
+INNER JOIN Project p    ON d.Deparnumber = p.Deparnumber;
+SELECT * FROM Dependent;
+--Left Join--> returns all rows from the left table (the first table mentioned in the FROM clause), plus any matching rows from the right table.
+SELECT 
+    e.SSN, 
+    e.FName || ' ' || e.LName AS Employee_Name, 
+    d.DeparName AS Department_Name, 
+    dp.DepName AS Dependent_Name,
+    dp.Gender AS Dependent_Gender
+FROM Employee e
+INNER JOIN Department d ON e.Deparnumber = d.Deparnumber
+LEFT JOIN Dependent dp  ON e.SSN = dp.SSN;
+--Right Join --> opposite of the left join
+SELECT 
+    p.PNumber, 
+    p.PName AS Project_Name, 
+    d.DeparName AS Department_Name, 
+    e.FName || ' ' || e.LName AS Assigned_Employee
+FROM Employee e
+RIGHT JOIN Department d ON e.Deparnumber = d.Deparnumber
+RIGHT JOIN Project p    ON d.Deparnumber = p.Deparnumber;
+--SELF JOIN --> is a regular join (usually an INNER JOIN or LEFT JOIN) where a table is joined to itself.
+SELECT 
+    e.SSN AS Employee_SSN,
+    e.FName || ' ' || e.LName AS Employee_Name,
+    s.FName || ' ' || s.LName AS Supervisor_Name,
+    d.DeparName AS Department_Name
+FROM Employee e
+LEFT JOIN Employee s    ON e.Supervisorid = s.SSN
+INNER JOIN Department d ON e.Deparnumber = d.Deparnumber;
