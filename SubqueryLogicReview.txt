@@ -1,0 +1,224 @@
+1. Query Review 1
+SELECT first_name, salary
+ FROM employees
+ WHERE salary > AVG(salary);
+SQL Logic Review
+1.Analyze the output or error.
+	The error, in detail, stems from the fact that the Oracle database engine operates according to a strict logical execution order. In this order, the WHERE clause is executed before grouping functions like AVG are calculated.
+
+When the engine attempted to execute the line `WHERE salary > AVG(salary)`, it didn't have the "average salary" value yet because it hadn't been calculated. Calculating it requires reviewing each row of the table first, while the WHERE function filters the rows one by one before grouping. This logical conflict caused the engine to refuse to execute the query.
+
+2.Determine whether the business logic is correct.
+	The business logic is completely wrong because it violates the rules of constructing SQL sentences (Syntax), which led to the query failing and not fulfilling the work request.
+
+3.Rewrite or improve the query if necessary.
+	SELECT first_name, salary
+	FROM employees
+	WHERE salary > (SELECT AVG(salary) FROM employees);
+
+4.Explain the reasoning behind the correction.
+	The database first calculates the average salary of the entire company. Then, it scans the employee list and returns the first name and salary of anyone who earns more than that average.	
+	
+Query Logic Analysis
+1. Whether the appropriate subquery type was used.
+	No, no subquery was used at all. The code is written as a single query.
+
+2. Whether the query returns a single-row or multi-row result correctly.
+	It does not return any rows (no result). Due to a syntax error, the database engine refuses to execute the command and outputs the error message ORA-00934: group function is not allowed here. The query stops before the data fetch or processing stage.
+
+3. Whether comparison operators match the expected result set.
+	No. The comparison factor > (greater than) always waits for a scalar value on its right-hand side to compare each employee's salary to. Since AVG(salary) was incorrectly placed in the WHERE and was not pre-evaluated as a scalar value, the comparison fails both logically and structurally.
+
+4. Whether execution order affects the outcome.
+	Yes, the order of execution is the main reason this code does not work.
+
+5. Whether the business requirement is correctly implemented.
+	No, the business requirements were never met.
+Because the code crashed and produced a system error, neither the user nor the system received the list of above-average-paid employees, and the requirement remained pending until the code was corrected.
+
+
+2. Query Review 2 
+SELECT department_name
+ FROM departments
+ WHERE department_id = (
+ SELECT department_id
+ FROM employees
+);
+
+1.Analyze the output or error.
+	The query does not return any data, but instead encountered a Runtime Error. 
+
+Detailed cause of the error: You used the equality operator =. This operator is called a single-row comparison operator, and it expects the subquery that follows it to return only a single value (one row and one column) for comparison.
+
+2.Determine whether the business logic is correct.
+	Syntax: The code is structurally flawed because the parameter doesn't match the output of the subquery.
+
+Business Logic: The query appears to aim to "display the names of departments where employees are currently working" (i.e., to exclude empty departments). This logic is correct and important, but the method used to implement it is incorrect.
+
+3.Rewrite or improve the query if necessary.
+	We simply replace the = sign with the IN operator because it is intended for handling multi-row subqueries
+	SELECT department_name
+	FROM departments
+	WHERE department_id IN (
+    	SELECT department_id 
+    	FROM employees
+	);
+
+4.Explain the reasoning behind the correction.
+	The database first collects a list of all department IDs that have employees working in them. Then, it looks at the departments table and prints out the names of the departments whose IDs are on that list.
+
+
+Query Logic Analysis
+1. Whether the appropriate subquery type was used.
+	No. The subquery written here is a regular non-correlated subquery that returns a list of all department numbers from the employees table.
+
+2. Whether the query returns a single-row or multi-row result correctly.
+	It does not return any rows at all. ORA-01427: single-row subquery returns more than one row
+
+3. Whether comparison operators match the expected result set.
+	They do not match. The comparison operator used is the equals sign (=). Logically, this operator waits for a single value on its left (a single-digit number) and a single value on its right to compare them.
+
+4. Whether execution order affects the outcome.
+Yes, the execution order is what revealed the error and caused the query to stop.
+
+In SQL, the execution order differs from the writing order. When this code is run, the engine works as follows:
+
+It starts with `FROND departments` to determine the main departments table.
+
+It then moves to the `WHERE` condition to filter the departments.
+
+It finds a subquery within the condition, prioritizes it, and executes it first: `SELECT department_id FROM employees`.
+
+As soon as the subquery finishes collecting the department numbers and attempts to pass them (as a list) to the `=` sign in the main query, the engine immediately detects the configuration conflict, stops execution, and generates the error before proceeding to the final SELECT step.
+
+5. Whether the business requirement is correctly implemented.
+	
+	No, the business requirements were not met. The business or logical purpose behind this query was to display the names of the departments where employees are currently working. Due to a code crash and the resulting error, the user received a system error message instead of the required report of employees and departments, thus failing to meet the business requirement.
+
+3. Query Review 3
+SELECT *
+FROM employees
+WHERE department_id IN (
+SELECT salary
+FROM employees
+);
+
+1.Analyze the output or error.
+	The query is executed successfully without any syntax errors, showing you: All Rows Fetched: 0 (0 rows were fetched).
+
+2.Determine whether the business logic is correct.
+	The internal query retrieves a list of all employee salaries within the company (e.g., 1500, 2500, 4000, etc.).
+
+The external query, on the other hand, requests the database to retrieve data for employees whose department ID is included in the list generated by the internal query. A critical error occurs when comparing the department ID to the salary value.
+
+3.Rewrite or improve the query if necessary.
+	SELECT e.employee_id, 
+       e.first_name, 
+       e.last_name, 
+       e.salary
+FROM employees e
+WHERE e.salary > (
+    SELECT AVG(s.salary) 
+    FROM employees s
+); 
+This query
+ Who are the employees who earn above-average salaries in the company?
+
+4.Explain the reasoning behind the correction.
+	
+	Step 1 (Input): The system calculates the average salary in the company, let's say 2500.
+
+	Step 2 (Output): The parentheses are replaced with this number, so the query in the background looks like this:
+WHERE e.salary > 2500
+
+	Step 3 (Result): The system goes through the employees in the table one by one. For each employee whose salary is found to be higher than 2500, their name, employee number, and salary are printed in the final list, and those with lower salaries are excluded.
+
+1. Whether the appropriate subquery type was used.
+	No. An uncorrelated subquery was used that returned a list of salaries, whereas the correct logic would require comparing similar fields of the same type (e.g., department number with department number, or salary with salary).
+
+2. Whether the query returns a single-row or multi-row result correctly.
+	No. Although the internal query (SELECT salary...) technically returns a multi-row result (a list of all salaries), it does so logically incorrectly in the context of the external query, ultimately resulting in no rows being fetched at all, as shown in your screenshot (0 rows fetched).
+	
+3. Whether comparison operators match the expected result set.
+	No, there is a complete mismatch. The IN tool attempts to compare the department_id column (which typically contains small numbers like 10, 20, 90) with a list containing salary values ​​(which are large numbers like 3000, 5000, 10000). This discrepancy prevents any match from occurring.
+
+4. Whether execution order affects the outcome.
+	Yes. The SQL engine executes the internal query first to create the payroll list and store it in memory. Because of this execution order, the external query is forced to look for a department_id that matches any number within that payroll list, and because there is no match, the result is empty.	
+
+5. Whether the business requirement is correctly implemented.
+	Not at all. This query does not meet any logical business or administrative requirement in companies because it compares two completely separate and unrelated criteria (departments versus salaries), which is the main reason why the result table appears completely empty in your program.
+
+4. Query Review 4
+	SELECT first_name
+ 	FROM employees
+ 	WHERE salary > (
+ 	SELECT salary
+ 	FROM employees
+ 	WHERE department_id = 90
+ 	);
+Query Logic Analysis
+
+1. Whether the appropriate subquery type was used.
+	No. It used a subquery designed to return a single value, but because Department 90 has multiple employees, it returned multiple values ​​(a payroll list). This discrepancy caused the query to stop executing.
+
+2. Whether the query returns a single-row or multi-row result correctly.
+	No, the internal query incorrectly produced multiple rows in the background that do not fit the single comparison tool >, causing the code to break and the error to appear.
+
+3. Whether comparison operators match the expected result set.
+	No, there's a clear error. The single-row comparison operator > (greater than) is being used. This operator only compares the salary to a specific number (e.g., salary > 2400). It cannot compare the salary to a list of numbers. To correct this error, you need to use multi-row comparison operators such as > all or > any.
+
+4. Whether execution order affects the outcome.
+	Yes. SQL evaluates the inner subquery first: SELECT salary FROM employees WHERE department_id = 90. It compiled the list of all salaries in department 90 (e.g., 24000, 17000, 17000). When it handed this list to the outer query, the execution failed immediately at the > step because it didn't know which number in the list to pick.
+
+5. Whether the business requirement is correctly implemented.
+	No. The query failed to execute, meaning the business requirement was not implemented at all.
+
+1. Analyze the output or error. 
+	Analysis: The code failed completely and produced error ORA-01427.
+
+	Technical Cause: The subquery retrieved the salaries of employees in Department 90 behind the scenes. Since the department has more than one employee, the query returned a list containing multiple rows (multiple values). The external query used the single comparison operator > (Greater Than), which only accepts one value for comparison, causing the code to crash and produce this error.
+
+2. Determine whether the business logic is correct.
+	No, the current programming logic is vague and incomplete.
+
+Reason: From a business logic perspective, when you want to find employees with salaries higher than those in a specific department (such as Department 90), you must define your objective precisely:
+Do you want those with salaries higher than the highest salary in that department?
+Or higher than the lowest salary in that department?
+Or higher than the average salary in that department?
+The current code doesn't specify any of these options. Instead, it asks the system to compare an employee's salary to all salaries in the department at once, which is mathematically and programmatically impossible.
+
+3. Rewrite or improve the query if necessary.
+	1. Higher than the HIGHEST salary in that department
+	SELECT first_name, salary
+	FROM employees
+	WHERE salary > (
+    	SELECT MAX(salary) 
+    	FROM employees
+    	WHERE department_id = 90);
+
+	2.Higher than the LOWEST salary in that department
+	SELECT first_name, salary
+	FROM employees
+	WHERE salary > (
+    	SELECT MIN(salary) 
+    	FROM employees
+    	WHERE department_id = 90);
+
+	3. Higher than the AVERAGE salary in that department
+	SELECT first_name, salary
+	FROM employees
+	WHERE salary > (
+    	SELECT AVG(salary) 
+    	FROM employees
+    	WHERE department_id = 90
+	);
+
+4. Explain the reasoning behind the correction.
+	
+	The Problem: The standard > (Greater Than) operator is a single-row operator. It expects exactly one value on its right side (e.g., salary > 5000). When the subquery returned a multi-row list (e.g., 24000, 17000, 17000), the > operator broke down because it cannot logically compare a single number to a list of multiple numbers simultaneously.
+
+	The Correction: The solutions fix this by ensuring that either the operator is upgraded to handle a list, or the list is compressed into a single value.
+	
+	
+
+	
