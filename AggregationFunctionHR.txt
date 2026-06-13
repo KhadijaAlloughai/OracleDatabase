@@ -1,0 +1,76 @@
+--COUNT – Count the total number of employees in the EMPLOYEES table 
+SELECT * FROM EMPLOYEES;
+
+SELECT COUNT(EMPLOYEE_ID)
+FROM HR.EMPLOYEES;
+
+--The total number of departments in the DEPARTMENTS table.
+SELECT * FROM DEPARTMENTS;
+
+SELECT COUNT(DEPARTMENT_ID)
+FROM HR.DEPARTMENTS;
+
+--SUM – Calculate the total salary of all employees
+SELECT SUM(SALARY)
+FROM HR.EMPLOYEES;
+
+--The total commission percentage across the EMPLOYEES table.
+SELECT SUM(COMMISSION_PCT)
+FROM HR.EMPLOYEES;
+
+--AVG – Find the average salary of all employees
+SELECT ROUND(AVG(SALARY), 2) 
+FROM HR.EMPLOYEES;
+
+--The average minimum and maximum salary from the JOBS table.
+SELECT AVG(MIN_SALARY), 2,
+       AVG(MAX_SALARY), 2
+FROM HR.JOBS;
+-- WITH APPROXIMATION
+SELECT ROUND(AVG(MIN_SALARY), 2),
+       ROUND(AVG(MAX_SALARY), 2)
+FROM HR.JOBS;
+
+--MAX & MIN – Retrieve the highest and lowest salary from the EMPLOYEES table
+SELECT MAX(SALARY),
+       MIN(SALARY)
+FROM HR.EMPLOYEES;
+
+--The highest and lowest max salary from the JOBS table.
+SELECT MAX(MAX_SALARY),
+       MIN(MAX_SALARY)
+FROM HR.JOBS;
+
+--GROUP BY – Group employees by department ID and display the total number of employees per department. 
+-- From → Join → where → Group by → having → select → order by
+SELECT DEPARTMENT_ID, 
+       COUNT(EMPLOYEE_ID)
+FROM HR.EMPLOYEES
+GROUP BY DEPARTMENT_ID;
+
+-- Group jobs by job title and show the average min and max salary per job.
+-- From → Join → where → Group by → having → select → order by
+SELECT JOB_TITLE, 
+       ROUND(AVG(MIN_SALARY), 2), 
+       ROUND(AVG(MAX_SALARY), 2)
+FROM HR.JOBS
+GROUP BY JOB_TITLE;
+
+--HAVING – Filter grouped results to show only departments with more than 5 employees.
+-- From → Join → where → Group by → having → select → order by
+SELECT 
+    d.DEPARTMENT_NAME, 
+    COUNT(e.EMPLOYEE_ID)
+FROM HR.EMPLOYEES e
+INNER JOIN HR.DEPARTMENTS d ON e.DEPARTMENT_ID = d.DEPARTMENT_ID
+GROUP BY d.DEPARTMENT_NAME
+HAVING COUNT(e.EMPLOYEE_ID) > 5;
+
+--Show only jobs where the average max salary exceeds a specific value.
+-- From → Join → where → Group by → having → select → order by 
+
+SELECT JOB_TITLE, 
+       ROUND(AVG(MAX_SALARY), 2)
+FROM HR.JOBS
+GROUP BY JOB_TITLE
+HAVING AVG(MAX_SALARY) > 10000;
