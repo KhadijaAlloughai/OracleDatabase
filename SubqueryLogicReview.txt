@@ -36,7 +36,6 @@ Query Logic Analysis
 	No, the business requirements were never met.
 Because the code crashed and produced a system error, neither the user nor the system received the list of above-average-paid employees, and the requirement remained pending until the code was corrected.
 
-
 2. Query Review 2 
 SELECT department_name
  FROM departments
