@@ -1,0 +1,296 @@
+--***********Oracle HR Schema Subquery Analytics & Business Reporting*********
+
+--1. Salary Analysis Using Subqueries
+
+--Employees earning more than the company average salary.
+
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name,
+       e.salary
+FROM hr.employees e
+WHERE e.salary > (SELECT AVG(salary) FROM hr.employees);
+
+--Employees earning less than the company's highest salary.
+
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name,
+       e.salary
+FROM hr.employees e
+WHERE e.salary < (SELECT MAX(salary) FROM hr.employees);
+
+--Departments whose average salary exceeds the company average salary.
+
+SELECT d.department_id,
+       d.department_name
+FROM hr.departments d
+WHERE d.department_id IN (
+    SELECT e.department_id
+    FROM hr.employees e
+    GROUP BY e.department_id
+    HAVING AVG(e.salary) > (SELECT AVG(salary) FROM hr.employees)
+);
+--Employees earning the highest salary within their department.
+
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name,
+       e.department_id,
+       e.salary
+FROM hr.employees e
+WHERE (e.department_id, e.salary) IN (
+    SELECT department_id, MAX(salary)
+    FROM hr.employees
+    GROUP BY department_id
+);
+--2. Department & Location Analysis
+
+--Using subqueries (avoiding JOINs where required), create reports for:
+
+--Employees working in departments located in the United States.
+
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name,
+       e.department_id
+FROM hr.employees e
+WHERE e.department_id IN (
+    SELECT d.department_id
+    FROM hr.departments d
+    WHERE d.location_id IN (
+        SELECT l.location_id
+        FROM hr.locations l
+        WHERE l.country_id = 'US'
+    )
+);
+--Departments that currently contain employees.
+
+SELECT d.department_id,
+       d.department_name
+FROM hr.departments d
+WHERE EXISTS (
+    SELECT 1 
+    FROM hr.employees e 
+    WHERE e.department_id = d.department_id
+);
+--Departments that currently have no employees.
+
+SELECT d.department_id,
+       d.department_name
+FROM hr.departments d
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM hr.employees e 
+    WHERE e.department_id = d.department_id
+);
+--Employees working in departments located in the Europe region using nested subqueries.
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name
+FROM hr.employees e
+WHERE e.department_id IN (
+    SELECT d.department_id
+    FROM hr.departments d
+    WHERE d.location_id IN (
+        SELECT l.location_id
+        FROM hr.locations l
+        WHERE l.country_id IN (
+            SELECT c.country_id
+            FROM hr.countries c
+            WHERE c.region_id = (SELECT region_id FROM hr.regions WHERE region_name = 'Europe')
+        )
+    )
+);
+--3. Manager & Hierarchy Analysis
+
+--Employees earning more than their manager.
+
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name,
+       e.salary
+FROM hr.employees e
+WHERE e.salary > (
+    SELECT m.salary 
+    FROM hr.employees m 
+    WHERE m.employee_id = e.manager_id
+);
+--Managers supervising at least one employee earning more than 10,000.
+
+SELECT m.employee_id,
+       m.first_name || ' ' || m.last_name AS manager_name
+FROM hr.employees m
+WHERE m.employee_id IN (
+    SELECT DISTINCT e.manager_id
+    FROM hr.employees e
+    WHERE e.salary > 10000
+);
+--Employees whose manager works in the same department.
+
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name
+FROM hr.employees e
+WHERE e.department_id = (
+    SELECT m.department_id 
+    FROM hr.employees m 
+    WHERE m.employee_id = e.manager_id
+);
+--Employees whose manager works in a different department.
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name
+FROM hr.employees e
+WHERE e.department_id != (
+    SELECT m.department_id 
+    FROM hr.employees m 
+    WHERE m.employee_id = e.manager_id
+);
+
+--4. Inline View & Query Execution
+
+--Filtering employees earning more than 10,000.
+
+SELECT emp_view.employee_id,
+       emp_view.full_name,
+       emp_view.salary
+FROM (
+    SELECT employee_id, first_name || ' ' || last_name AS full_name, salary 
+    FROM hr.employees
+) emp_view
+WHERE emp_view.salary > 10000;
+--Displaying departments with average salary greater than 9,000.
+
+SELECT dept_view.department_id,
+       dept_view.avg_sal
+FROM (
+    SELECT department_id, AVG(salary) AS avg_sal
+    FROM hr.employees
+    GROUP BY department_id
+) dept_view
+WHERE dept_view.avg_sal > 9000;
+
+--Displaying departments with more than five employees.
+
+SELECT dept_cnt.department_id,
+       dept_cnt.emp_count
+FROM (
+    SELECT department_id, COUNT(employee_id) AS emp_count
+    FROM hr.employees
+    GROUP BY department_id
+) dept_cnt
+WHERE dept_cnt.emp_count > 5;
+--5. Advanced Subquery Logic
+
+--Employees earning above their department average salary.
+
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name,
+       e.salary
+FROM hr.employees e
+WHERE e.salary > (
+    SELECT AVG(salary)
+    FROM hr.employees
+    WHERE department_id = e.department_id
+);
+--Employees earning above the average salary for their job role.
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name,
+       e.job_id,
+       e.salary
+FROM hr.employees e
+WHERE e.salary > (
+    SELECT AVG(salary)
+    FROM hr.employees
+    WHERE job_id = e.job_id
+);
+--Departments where all employees earn more than 5,000.
+
+SELECT d.department_id,
+       d.department_name
+FROM hr.departments d
+WHERE 5000 < ALL (
+    SELECT e.salary
+    FROM hr.employees e
+    WHERE e.department_id = d.department_id
+);
+--Employees who are the only employee in their department.
+
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name,
+       e.department_id
+FROM hr.employees e
+WHERE (
+    SELECT COUNT(*) 
+    FROM hr.employees inner_emp 
+    WHERE inner_emp.department_id = e.department_id
+) = 1;
+--6. Executive HR Analytics Challenge
+--Develop analytical reports using subqueries for:
+
+--Employees earning above the company average salary.
+
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name,
+       e.salary
+FROM hr.employees e
+WHERE e.salary > (SELECT AVG(salary) FROM hr.employees);
+
+--Departments with more employees than Department 50.
+
+SELECT e.department_id,
+       COUNT(e.employee_id) AS total_employees
+FROM hr.employees e
+GROUP BY e.department_id
+HAVING COUNT(e.employee_id) > (
+    SELECT COUNT(*) 
+    FROM hr.employees 
+    WHERE department_id = 50
+);
+--Employees working in the department with the highest average salary.
+
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name,
+       e.department_id
+FROM hr.employees e
+WHERE e.department_id = (
+    SELECT d.department_id
+    FROM hr.employees d
+    GROUP BY d.department_id
+    ORDER BY AVG(d.salary) DESC
+    FETCH FIRST 1 ROWS ONLY
+);
+--Employees earning the second-highest salary.
+
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS employee_name,
+       e.salary
+FROM hr.employees e
+WHERE e.salary = (
+    SELECT MAX(salary)
+    FROM hr.employees
+    WHERE salary < (SELECT MAX(salary) FROM hr.employees)
+);
+--Managers whose employees' average salary exceeds 10,000.
+--The condition checks the salary strength of
+--the team reporting to the manager, not the manager's own salary.
+SELECT m.employee_id,
+       m.first_name || ' ' || m.last_name AS manager_name
+FROM hr.employees m
+WHERE m.employee_id IN (
+    SELECT e.manager_id
+    FROM hr.employees e
+    WHERE e.manager_id IS NOT NULL
+    GROUP BY e.manager_id
+    HAVING AVG(e.salary) > 10000
+);
+--Neena and Lex: Their personal salaries are high,
+--but the employees working under them have average salaries 
+--(such as 4,000 and 6,000). Therefore, their team's average 
+--came out to be less than 10,000, which is why they disappeared
+--from the results.
+--Steven King: He is the company president, and the employees working
+--directly under him are the vice presidents and department managers 
+--(including Neena and Lex with salaries of 17,000). Therefore, 
+--the average of this leadership team came out to be more than 10,000, which is why he appeared alone.
+
+SELECT e.manager_id, 
+       (SELECT m.first_name || ' ' || m.last_name FROM hr.employees m WHERE m.employee_id = e.manager_id) AS manager_name,
+       AVG(e.salary) AS team_average_salary
+FROM hr.employees e
+WHERE e.manager_id IS NOT NULL
+GROUP BY e.manager_id
+ORDER BY team_average_salary DESC;
