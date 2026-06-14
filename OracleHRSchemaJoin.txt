@@ -1,0 +1,184 @@
+--************Oracle HR Schema JOIN Practice Task-------
+
+-- 2- Employee & Department Reports
+
+--1. Employee ID, full name, and department name (employees with departments only).
+SELECT e.employee_id,
+       e.first_name || ' ' || e.last_name AS full_name,
+       d.department_name
+FROM hr.employees e
+INNER JOIN hr.departments d ON e.department_id = d.department_id;
+
+--2. Employee full name, job title, and salary (employees with valid jobs only).
+SELECT e.first_name || ' ' || e.last_name AS full_name,
+       j.job_title,
+       e.salary
+FROM hr.employees e
+INNER JOIN hr.jobs j ON e.job_id = j.job_id
+
+--3. Employee, department, and department city.
+SELECT e.first_name || ' ' || e.last_name AS employee_name,
+d.department_name,
+l.city AS department_city
+FROM hr.employees e
+INNER JOIN hr.departments d ON e.department_id = d.department_id
+INNER JOIN hr.locations l ON d.location_id = l.location_id
+
+--4. Employee, department, country, and region.
+SELECT e.first_name || ' ' || e.last_name AS employee_name,
+d.department_name,
+c.country_name,
+r.region_name
+FROM hr.employees e
+INNER JOIN hr.departments d ON e.department_id = d.department_id
+INNER JOIN hr.locations l ON d.location_id = l.location_id
+INNER JOIN hr.countries c ON l.country_id = c.country_id
+INNER JOIN hr.regions r ON c.region_id = r.region_id
+
+--3. Organization Structure Analysis
+
+-- 5. Complete employee list including employees without departments.
+SELECT e.employee_id,
+e.first_name || ' ' || e.last_name AS full_name,
+d.department_name
+FROM hr.employees e
+LEFT OUTER JOIN hr.departments d ON e.department_id = d.department_id
+
+-- 6. Complete department list including departments without employees.
+SELECT d.department_id,
+d.department_name,
+e.first_name || ' ' || e.last_name AS employee_name
+FROM hr.departments d
+LEFT OUTER JOIN hr.employees e ON d.department_id = e.department_id
+
+-- 7. Departments that currently have no employees assigned.
+SELECT d.department_id,
+d.department_name
+FROM hr.departments d
+LEFT OUTER JOIN hr.employees e ON d.department_id = e.department_id
+WHERE e.employee_id IS NULL;
+
+-- 4. Management Hierarchy Analysis
+--8. Employee name and direct manager name.
+SELECT e.first_name || ' ' || e.last_name AS employee_name,
+m.first_name || ' ' || m.last_name AS manager_name
+FROM hr.employees e
+INNER JOIN hr.employees m ON e.manager_id = m.employee_id;
+--9. Employees without managers and provide a brief explanation.
+--Who is this employee? When you run this code in the schema,
+--you will only get one result: Steven King (Chairman of the Board or CEO of the company).
+--Business Logic: In any corporate organizational structure, the highest-ranking employee
+--(such as the CEO) has no direct supervisor to whom they report, so their manager field
+--is left blank (NULL).Technical Reason: We used the IS NULL condition because regular comparison operators
+--(like = or <>) cannot check for null values ​​in SQL, and the only way to catch blank (white) cells in your
+--program is to use IS NULL.
+SELECT e.employee_id,
+e.first_name || ' ' || e.last_name AS employee_name,
+e.job_id
+FROM hr.employees e
+WHERE e.manager_id IS NULL
+
+-- 5. Advanced Business Analysis
+
+--10. Employees earning more than their managers.
+
+SELECT 
+    emp.first_name || ' ' || emp.last_name AS employee_name,
+    emp.salary AS employee_salary,
+    mgr.first_name || ' ' || mgr.last_name AS manager_name,
+    mgr.salary AS manager_salary
+FROM 
+    hr.employees emp
+INNER JOIN 
+    hr.employees mgr ON emp.manager_id = mgr.employee_id
+WHERE 
+    emp.salary > mgr.salary;
+    
+SELECT e.first_name || ' ' || e.last_name AS "Employee", 
+       m.first_name || ' ' || m.last_name AS "Manager",
+       e.salary AS "Employee Salary", 
+       m.salary AS "Manager Salary"
+FROM hr.employees e 
+INNER JOIN hr.employees m ON e.manager_id = m.employee_id
+ORDER BY e.salary DESC
+--11. Departments where the department manager works within the same department.
+
+SELECT 
+    d.department_id,
+    d.department_name,
+    e.first_name || ' ' || e.last_name AS manager_name,
+    e.department_id AS manager_working_dept
+FROM 
+    hr.departments d
+INNER JOIN 
+    hr.employees e ON d.manager_id = e.employee_id
+WHERE 
+    d.department_id = e.department_id;
+    
+--6. Executive Dashboard Reports
+
+--Employee, job title, department, city, and country.
+SELECT 
+    e.first_name || ' ' || e.last_name AS employee_name,
+    j.job_title,
+    d.department_name,
+    l.city,
+    c.country_name
+FROM 
+    hr.employees e
+INNER JOIN hr.jobs j        ON e.job_id = j.job_id
+INNER JOIN hr.departments d ON e.department_id = d.department_id
+INNER JOIN hr.locations l   ON d.location_id = l.location_id
+INNER JOIN hr.countries c   ON l.country_id = c.country_id;
+
+--Department, manager, city, and country (including departments without managers).
+SELECT 
+    d.department_name,
+    NVL(e.first_name || ' ' || e.last_name, 'No Manager Assigned') AS manager_name,
+    l.city,
+    c.country_name
+FROM 
+    hr.departments d
+LEFT OUTER JOIN hr.employees e ON d.manager_id = e.employee_id
+INNER JOIN hr.locations l      ON d.location_id = l.location_id
+INNER JOIN hr.countries c      ON l.country_id = c.country_id;
+
+--Employees working in the same department as their manager.
+SELECT 
+    emp.first_name || ' ' || emp.last_name AS employee_name,
+    mgr.first_name || ' ' || mgr.last_name AS manager_name,
+    d.department_name
+FROM 
+    hr.employees emp
+INNER JOIN 
+    hr.employees mgr ON emp.manager_id = mgr.employee_id
+INNER JOIN 
+    hr.departments d ON emp.department_id = d.department_id
+WHERE 
+    emp.department_id = mgr.department_id;
+    
+--Employees whose managers work in different departments.
+SELECT 
+    emp.first_name || ' ' || emp.last_name AS employee_name,
+    emp_dept.department_name AS employee_department,
+    mgr.first_name || ' ' || mgr.last_name AS manager_name,
+    mgr_dept.department_name AS manager_department
+FROM 
+    hr.employees emp
+INNER JOIN hr.employees mgr      ON emp.manager_id = mgr.employee_id
+INNER JOIN hr.departments emp_dept ON emp.department_id = emp_dept.department_id
+INNER JOIN hr.departments mgr_dept ON mgr.department_id = mgr_dept.department_id
+WHERE 
+    emp.department_id != mgr.department_id;
+
+--Distinct countries containing company departments.
+
+SELECT DISTINCT 
+    c.country_id,
+    c.country_name
+FROM 
+    hr.departments d
+INNER JOIN hr.locations l ON d.location_id = l.location_id
+INNER JOIN hr.countries c ON l.country_id = c.country_id
+ORDER BY 
+    c.country_name;
