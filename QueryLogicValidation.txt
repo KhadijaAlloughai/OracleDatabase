@@ -1,0 +1,137 @@
+Query Review 1
+SELECT e.first_name, e.last_name, d.department_name
+FROM employees e
+JOIN departments d
+ON e.employee_id = d.department_id;
+1.Execute the query.
+2. Analyze the Returned Results/3.Determine whether the business logic is correct.
+
+Problem: The returned data in the table is completely illogical and misleading, even though the query was executed correctly (syntactically correct).
+
+Reason: The match occurred purely by chance because the values ​​in the employee_id field (which typically start at 100 and above in the employee table, such as 100, 101, 102, etc.) matched the values ​​in the department_id field (which increments in the department table are 10, 20, 30, etc., up to 100, 110, 120, etc.).
+
+For example: Employee Steven King's employee_id = 100. The query associated him with the department with department_id = 100, which is the Finance department. However, after verifying, I noticed that Steven King doesn't work in the finance department but in the execution department.
+
+SELECT first_name, last_name, department_id
+FROM employees
+WHERE first_name = 'Steven' AND last_name = 'King';
+
+SELECT department_id, department_name
+FROM departments
+WHERE department_id = 90;
+
+4.Rewrite or improve the query if necessary.
+
+SELECT e.first_name, e.last_name, d.department_name
+FROM employees e
+JOIN departments d
+ON e.department_id = d.department_id;
+
+5.Briefly explain why the original query was incorrect and why the revised version is better.
+
+The original query linked two tables based on a fictitious relationship (e.employee_id = d.department_id). The appearance of 11 rows in the result is simply a "logical bug" due to the overlap of numbers between employee ID sequences and department IDs (at 100 and above), resulting in the display of random data that doesn't accurately reflect the employees' job roles.
+
+why the revised version is better.
+
+The updated query links the employee to the actual department number recorded in their employee file (e.department_id). This ensures that employees' true departments are displayed (for example, Steven King will be listed as Executive, not Finance), thus achieving 100% accuracy in the workflow.
+
+----------------------------------------------------------------------------------
+
+Query Review 2
+SELECT e.first_name, e.last_name, j.job_title
+FROM employees e
+JOIN jobs j
+ON e.employee_id = j.job_id;
+
+1.Execute the query.
+ORA-01722: invalid number
+
+2.Analyze the returned results./3.Determine whether the business logic is correct.
+
+The logic is completely incorrect.
+
+Technical reason (programmatically): The employee ID field e.employee_id is a numeric field (NUMBER) containing numbers such as (100, 101...). In contrast, the j.job_id field in the jobs table is a text field (VARCHAR2) containing job codes such as (AD_PRES, IT_PROG, FI_MGR).
+
+The database completely rejects comparing or linking a numeric field to a text field, causing the query to fail programmatically before even reaching the business logic.
+
+Logical reason (business logic): Even assuming, for the sake of argument, that the data types are the same, it is illogical to link the unique employee ID number to the job code. Business logic dictates that the employee should be linked to their current job through the field shared between the two tables.
+
+
+4.Rewrite or improve the query if necessary.
+
+SELECT e.first_name || ' ' || e.last_name AS Employee_name, j.job_title
+FROM employees e
+JOIN jobs j
+ON e.job_id = j.job_id;
+
+5.Briefly explain why the original query was incorrect and why the revised version is better.
+
+Because the previous query attempted to compare the employee ID (employee_id) with the job code (job_id), it caused a data type conflict, code crash, and the error ORA-01722: invalid number.
+
+why the revised version is better?
+
+Because this version links the tables using a programmatically and logically designed relationship between the two tables (the foreign key and the primary key job_id). Both have the same data type (VARCHAR2), allowing the system to correctly match the codes and display the true and logical job title for each employee.
+----------------------------------------------------------------------------------
+
+Query Review 3;
+
+SELECT e.first_name, d.department_name
+FROM employees e
+LEFT JOIN departments d
+ON e.department_id = d.department_id
+WHERE d.department_name = 'Sales';
+
+1.Execute the query.
+2.Analyze the returned results./3.Determine whether the business logic is correct.
+
+The logic is perfectly correct.
+
+The reason: Since the goal is to limit the results to sales employees only, the business logic requires a perfect match between the employee table and the department table. The inner join ensures that only employees with a department appear in the results, and that this department is exclusively sales.
+
+4.Rewrite or improve the query if necessary.
+
+SELECT e.first_name, d.department_name
+FROM employees e
+INNER JOIN departments d
+ON e.department_id = d.department_id
+WHERE d.department_name = 'Sales';
+
+5.Briefly explain why the original query was incorrect and why the revised version is better.
+
+The original query used a LEFT JOIN, which in SQL means "I want all employees, even those without a department." However, adding the WHERE d.department_name = 'Sales' condition at the end deleted all other employees. This inconsistency makes the code misleading to any programmer reading it (because they're asking themselves: Why use a LEFT JOIN when you only want the sales department?).
+
+why the revised version is better.?
+
+Using an INNER JOIN tells the database engine and any programmer reading the code that you only want employees who are actually part of the sales department, making the code easier to read and maintain, and faster to perform.
+---------------------------------------------------------------------------------
+Query Review 4
+
+SELECT e.first_name, m.first_name AS manager_name
+FROM employees e
+JOIN employees m
+ON e.employee_id = m.manager_id;
+
+1.Execute the query.
+2.Analyze the returned results./3.Determine whether the business logic is correct.
+
+The logic is completely inverted.
+
+Technical analysis of the results: Looking at the resulting table, you'll find, for example, that a junior employee or a regular employee like Amit, Lisa, and Elizabeth appears in the MANAGER_NAME column (as if they were a manager), while the actual manager appears in the FIRST_NAME column (as if they were a subordinate employee)!
+
+The reason: The binding condition is ON e.employee_id = m.manager_id. This condition tells the database: "Find the employee e whose ID matches the manager's ID of employee m." This completely reverses the management relationship, making the subordinate a manager and the manager a subordinate in the returned result.
+
+
+4.Rewrite or improve the query if necessary.
+
+SELECT e.first_name AS employee_name, m.first_name AS manager_name
+FROM employees e
+JOIN employees m
+ON e.manager_id = m.employee_id;
+
+5.Briefly explain why the original query was incorrect and why the revised version is better.
+
+The original query caused a "hierarchical reversal" due to incorrect condition formulation (e.employee_id = m.manager_id). This condition caused the system to display employee e as employee m's manager, leading to misleading results that completely contradicted actual business logic.
+
+Why is the modified version better?
+
+The modified version relies on sound data reading logic: "Employee e has a field that indicates their manager (e.manager_id), so we take this field and match it with the manager's ID number in the other version of the table (m.employee_id)." This ensures that every employee is displayed alongside their actual manager with 100% accuracy.
