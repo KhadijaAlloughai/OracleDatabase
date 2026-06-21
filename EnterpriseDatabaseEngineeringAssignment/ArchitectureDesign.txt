@@ -1,0 +1,34 @@
+Design simple architecture for an HR system using
+
+[ HR Users / Managers ]
+             │
+             ▼
+      [ Secure Views ]  ◄── (Controlled Access - No Direct Table Access)
+             │
+             ▼
+    [ PL/SQL Procedures ] ───► [ Generated Reports / Output ]
+             │
+      (Read / Write)
+             │
+             ▼
+    [ Primary Tables ]
+             │
+      (Auto-Triggered)
+             │
+             ▼
+     [ Database Triggers ]
+             │
+      (Audit Logging)
+             │
+             ▼
+     [ Audit Tables ] ◄─────── [ Scheduler Jobs ] (Automated Weekly/Monthly Run)
+
+
+
+
+3. Object Interaction Scenarios (How They Interact)
+Controlled Access: An HR employee requests employee data via the View. The View retrieves hidden data from the underlying tables and displays it without granting the employee permission to modify or view the original tables.
+
+Auto-Auditing: When an authorized manager updates an employee's salary in the employees table, the trigger immediately runs in the background to record the complete transaction details (old salary, new salary, user, and exact time) in the Audit Table as a historical reference.
+
+Automated Reports: At 4:00 PM every Friday, the Scheduler Job automatically wakes up and executes the procedure, which reads the data from the tables and prints the final management report.

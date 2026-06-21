@@ -1,0 +1,277 @@
+Day 1 – Enterprise Investigation & Solution Design
+
+Part 1 – Research & Understanding
+
+1. What is a View?
+A View is a virtual table based on a stored SQL query. It acts as a window or a mirror reflecting data from underlying tables, known as "base tables."
+- How it Works: When you create a view, the database engine does not create a new physical table or allocate actual disk storage for data. It simply stores the query definition (the SELECT statement) in the data dictionary.
+
+- Execution Moment: Whenever a user or an application queries the view, the database engine seamlessly replaces the view's name with its underlying SQL script and executes it against the base tables in real time.
+
+- Results: The data returned is always live and 100% up-to-date. If a single value is updated in the base table a millisecond before querying, that change immediately reflects inside the view.
+
+2. Why Do Companies Use Views?
+Enterprise database architectures heavily rely on views for the following strategic reasons:
+- Simplifying Complex Queries: Instead of forcing developers or data consumers to write massive, repetitive multi-table JOINs, aggregations, and filters daily, these complexities are packaged into a single view. Users can query it effortlessly using: SELECT * FROM view_name;
+
+- Software Stability (Data Independence): If database administrators decide to refactor or split physical tables to optimize backend performance, any application reading directly from those tables would crash. By pointing applications to a view instead, administrators only need to update the view's internal SQL query. The external application continues running seamlessly without requiring an expensive code rewrite.
+
+- Empowering Non-Technical Users (BI & Reporting): Views supply Business Intelligence tools (like Power BI or Tableau) and data analysts with clean, simplified, and pre-filtered versions of data, abstracting away complex relational schema constraints.
+- Modularity and Clean Design: Databases allow building views on top of other views. This allows development teams to build clean, layered, and isolated blocks of business logic progressively.
+
+3. What Security Benefits Do Views Provide?
+Views are an essential administrative tool for reinforcing information security policies and implementing the Principle of Least Privilege:
+
+- Column-Level Security: If an employee table stores public information alongside sensitive data (e.g., Salaries, National IDs, or Bank Accounts), granting full table access is a security risk. Administrators can create a view displaying only public columns (like Name and Department) and grant users permission exclusively to that view, locking away sensitive attributes.
+
+- Row-Level Security: Views can filter out rows based on a user's role or region using a WHERE clause. For instance, a view built for a branch manager in "Muscat" will automatically filter out and hide transactions belonging to other regional branches.
+
+- Hiding Internal Schema Architecture (Abstraction): Interacting exclusively with views prevents malicious actors or standard users from knowing the true names, constraints, and structural layout of the backend database, mitigating risks from vulnerabilities like SQL Injection.
+
+
+4. Deep Comparison: Table vs. View vs. Materialized View
+
+A. Standard Table:
+- Storage: Occupies physical storage space on the disk because it is where the raw data is written and permanently persisted.
+- Data Freshness: Instantly and inherently up-to-date, serving as the definitive "source of truth."
+- Performance: Generally fast for transactional operations, and can be highly optimized using indexing strategies.
+
+B. Virtual View (Standard View):
+- Storage: Zero data footprint on disk. It only stores the text definition of the SQL script.
+- Data Freshness: Fully dynamic and 100% live since it reads live records from base tables upon every single call.
+- Performance: Can become sluggish if the underlying query contains heavy computations or queries millions of records across multiple tables, as it calculates everything from scratch on every execution.
+
+C. Materialized View:
+- Storage: Occupies physical disk space because it takes the query definition, executes it, and physically saves (caches) the resulting dataset.
+- Data Freshness: Not live (Stale). The data remains locked into a static snapshot representing the exact moment it was last refreshed. It relies on a refresh strategy (manual, on a chronological schedule like every hour, or triggered by data changes depending on the database engine).
+- Performance: Extremely fast for reading and querying large datasets. Because the data is pre-computed and stored on disk, it acts like a physical table and can be indexed independently. It is the gold standard for heavy reporting dashboards and enterprise data warehouses.
+
+5. Enterprise Use Cases
+
+Use Case 1: Healthcare and Patient Management Systems
+- The Setup: The core database contains a physical Table named Patients which stores highly sensitive information: Patient IDs, Full Names, Medical Histories, Diagnoses, National IDs, and Insurance Details.
+- The Challenge: Different hospital departments need access to patient data, but providing full table access violates patient data privacy regulations.
+- The Solution using Views:
+  * For the Reception & Front Desk: The database administrator creates a standard View called Patient_CheckIn_View that excludes the medical diagnosis and history columns, only showing names and appointment times.
+  * For Medical Researchers: A separate View is built that completely strips out identifying information like names and National IDs (Data Anonymization) but exposes medical histories and diagnosis codes for study.
+  * For Regional Clinics: A Row-Level Security View is created using a WHERE clinic_id = 'Muscat' filter, ensuring staff at the Muscat branch can never see patient records belonging to a branch in another region.
+
+Use Case 2: Multi-Branch Retail & E-Commerce Analytics
+- The Setup: Every cash register scan writes directly to a massive, centralized transaction Table (Order_Items). This table experiences heavy, constant write operations (INSERT queries) every single second.
+- The Challenge: The executive leadership team uses a live Business Intelligence (BI) dashboard (like Power BI or Tableau) to track "Total Revenue by Region" and "Top 5 Selling Product Categories." If the dashboard queries the raw transaction table directly, it locks the database, slows down active cash registers, and takes minutes to load due to calculating millions of rows over and over.
+- The Solution using Materialized Views:
+  * The engineering team creates a Materialized View called mv_regional_sales_summary.
+  * This view pre-computes the heavy math—grouping totals by region and category—and saves the static output directly onto the disk.
+  * The Refresh Strategy: The materialized view is scheduled to automatically refresh every hour during the day, and every 15 minutes during peak sales events.
+  * The Result: The executive dashboard loads instantly (in milliseconds) because it reads from a small, pre-computed cache rather than scanning the live, multi-gigabyte transactional table.
+
+Use Case 3: Banking and Financial Systems Refactoring
+- The Setup: For over a decade, a single large physical database Table named Customer_Accounts stored both basic customer profiles and account balances together. Dozens of external legacy applications (internal auditing tools, ATM networks, web banking portals) are hardcoded to query this specific table.
+- The Challenge: To comply with modern database normalization rules, the engineering team needs to break this single table apart into two separate tables: Account_Balances and Customer_Profiles. However, changing the structure will instantly crash all legacy applications that expect the old Customer_Accounts table to exist.
+- The Solution using Views (Data Independence):
+  * The database architects split the physical tables as planned to optimize performance.
+  * To prevent anything from breaking, they create a virtual View and name it exactly Customer_Accounts (matching the old table's exact name).
+  * Inside this view, they write a JOIN statement that binds the two new tables back together seamlessly.
+  * The Result: The legacy applications and ATM networks continue running completely unaware that the underlying hardware layout changed. The view acts as a backward-compatible safety net, giving the bank years of extra time to phase out legacy code without experiencing operational downtime.
+
+
+1. What is a Stored Procedure?
+A Stored Procedure is a small, compiled program that is saved and executed directly inside the database server. It consists of a collection of SQL statements combined with integrated procedural logic, such as conditional statements (IF/ELSE), loops, variables, and error handling.
+
+Instead of an application (written in Java or Python, for example) sending multiple separate SQL commands over the network one after the other, it simply invokes this procedure by its name using a single, simple command (such as: EXECUTE process_order(101);) to execute the entire task completely within the database.
+
+2. Why Do Companies Use Stored Procedures?
+Companies rely on them to shift complex, data-heavy business logic out of application backend code and run it directly in the exact same place where the data resides. The primary reasons include:
+
+Performance and Response Speed Optimization: The procedure is compiled, and its execution plan is saved in the database cache once upon creation. This saves processing and compilation time during every subsequent invocation compared to standard SQL scripts.
+
+Network Traffic Reduction: Instead of pulling millions of rows from the database into the application's memory for processing and then transmitting the updates back over the network, the procedure performs all these heavy operations locally within the server. It only returns the final result or a status code to the application.
+
+Centralization of Business Logic: If a company operates a web app, a mobile app, and various reporting systems that all need to execute a specific process (such as registering a new customer), placing this logic inside a Stored Procedure ensures that all applications execute the workflow identically using the exact same code.
+
+Ease of Maintenance: If company policies or business rules change, developers can modify the code inside the procedure directly within the database. This eliminates the need to recompile, update, and deploy dozens of connected applications.
+
+3. What Problems Do Procedures Solve?
+Stored procedures address critical vulnerabilities within large-scale software system architectures:
+
+The Network Latency Problem (N+1 Query Problem): They eliminate the repetitive back-and-forth communication between the application and the database that occurs when checking conditions before taking the next step.
+
+Protection Against Cyberattacks (SQL Injection): Stored Procedures treat user inputs strictly as parameters rather than executable code strings. This prevents them from being executed as malicious scripts, serving as an essential security firewall for data.
+
+Preventing Data Conflict (Race Conditions): They allow wrapping multiple operations inside a strict database transaction (COMMIT / ROLLBACK). This prevents incomplete or corrupted records; for example, it is impossible to deduct a balance from a customer's account without logging the transaction receipt in the ledger table, even if the connection drops abruptly mid-execution.
+
+4. What is the difference between: Procedure and Function
+Here is the professional English translation of the comparison, incorporating clear technical phrasing:
+
+1. Primary Purpose and Intent
+Stored Procedure: Designed to execute a specific business operation, bulk update, or a complex sequential workflow. The procedure focuses on "performing a task" (e.g., processing a purchase order, onboarding a new employee, or archiving historical data).
+
+Function: Designed to perform a specific calculation, format text, or transform input values. The function focuses on "calculating something" and returning the result immediately (e.g., calculating due tax, converting currencies, or merging and formatting strings).
+
+2. Return Value Constraints
+Stored Procedure: Optional. It does not require a RETURN statement in its code. If it needs to send values or results back to the application, it can return zero, one, or multiple values simultaneously using special variables known as OUT or INOUT parameters.
+
+Function: Mandatory and Compulsory. A function must always return exactly one value (or a single table structure, depending on the type of database management system) using an explicit RETURN statement at the end of the code.
+
+3. Data Modification (DML Operations)
+Stored Procedure: Fully Allowed. Inside a procedure, you have complete freedom to write read, insert, update, and delete commands (INSERT, UPDATE, DELETE) against any table within the database.
+
+Function: Highly Restricted and Forbidden. A function is typically used for read-only operations (SELECT). It is not permitted to modify the state of the database or alter data inside the physical tables because it must remain a "deterministic" function, meaning it should not cause any side effects when invoked.
+
+4. Transaction Management
+Stored Procedure: Allowed. The procedure possesses full authority to control database transactions. It can explicitly issue a COMMIT command to permanently save changes, or a ROLLBACK command to undo the entire chain of operations if any error occurs.
+
+Function: Strictly Prohibited. Functions cannot write COMMIT or ROLLBACK commands. They are designed to operate and compute within the context of an active, already-open transaction and do not have the privileges to control it.
+
+5. Syntax and How They Are Called (How They Are Called)
+Stored Procedure: It is executed and invoked as a standalone command using explicit keywords such as CALL or EXECUTE.
+
+SQL
+-- Example of calling a stored procedure to grant an employee bonus
+CALL apply_employee_bonus(employee_id => 101, bonus_amount => 500);
+
+Function: It is directly embedded and integrated inside standard SQL statements, behaving exactly like the built-in functions native to databases (such as ROUND() or UPPER()). It can be placed inside SELECT projections, or within WHERE and HAVING clauses.
+
+SQL
+-- Example of calling a function to calculate annual tax inside a query
+SELECT first_name, calculate_annual_tax(salary) FROM employees;
+
+5.Give at least three enterprise use cases
+
+ Three Enterprise Use Cases
+Use Case 1: End-of-Day Financial Settlements (EOD Settlement in Banking)
+The Current Setup: A retail bank processes millions of transactions daily across accounts, loans, and credit cards. At midnight, the system must freeze active balances, calculate daily interest, and post pending transactions to the final closing accounts.
+
+Why Use a Procedure? Running this operation through an external application server would require downloading and uploading massive volumes of data, causing extreme bottlenecks. Instead, a scheduled system invokes an End-of-Day (EOD) Stored Procedure. The procedure locks the target accounts, runs interest equations inside a highly optimized loop directly within the database, commits the balances simultaneously with complete safety, and returns a success status code.
+
+Use Case 2: Inventory Allocation and Order Completion (Inventory Allocation in E-Commerce)
+The Current Setup: During major discount events (Flash Sales), thousands of users click the "Place Order" button at the exact same millisecond to purchase a product with highly limited stock in the warehouse.
+
+Why Use a Procedure? If the application checks the warehouse stock with one separate SQL command and then performs the purchase with another command, two users might see that stock = 1 at the exact same moment, resulting in selling a non-existent item (data conflict). The allocate_inventory stored procedure solves this issue by executing the entire verification and reservation workflow as a single, indivisible block (Atomic Transaction) inside the database engine. It locks the product row momentarily to update the quantity accurately and prevent overselling.
+
+Use Case 3: New Employee Registration and Audit Log Generation (Onboarding in Enterprises)
+The Current Setup: When a new employee joins a large enterprise, the HR system must register them in the employee table, assign their permissions in the security table, create their internal company email alias, and issue their security keys, while logging all these steps inside a regulatory audit table.
+
+Why Use a Procedure? Instead of the HR application manually executing five distinct INSERT statements, it simply invokes a single stored procedure named onboard_employee and passes the employee parameters (Name, Department, Role). The database automatically handles distributing the data across the five tables. If any single step fails (such as a duplicate email alias), the procedure triggers a ROLLBACK, canceling the entire operation to prevent orphaned or corrupted partial records from existing within the system.
+
+
+1. What is a Trigger?
+A Trigger is a specialized stored procedure that automatically executes (or "fires") in response to a specific event occurring within the database.
+
+Unlike standard stored procedures, which you must call manually using CALL or EXECUTE, a trigger is event-driven. It listens for Data Manipulation Language (DML) statements—specifically INSERT, UPDATE, or DELETE—committed against a designated table, and runs automatically behind the scenes when those actions occur.
+
+2. Why Do Companies Use Triggers?
+Companies use triggers to enforce complex, real-time automation and consistency directly within the data layer. Key reasons include:
+
+Automated Auditing and Logging: Triggers provide an unbypassable way to log changes. If a user modifies a critical record, a trigger can instantly write the old value, the new value, the user's ID, and a timestamp into a separate audit table.
+
+Complex Data Validation: While simple rules can be enforced using standard constraints (like CHECK or NOT NULL), triggers handle multi-table validations (e.g., preventing a transaction if a customer's total outstanding debt across multiple separate tables exceeds a certain limit).
+
+Automated Synchronization and Derived Data: Triggers can automatically calculate and update summary values. For example, adding an item to an order can trigger a script that instantly updates the grand_total column in the parent invoice table.
+
+Enforcing Complex Business Rules: They ensure that business logic is strictly obeyed regardless of which application, microservice, or developer is modifying the database.
+
+3. Difference Between: BEFORE Trigger vs. AFTER Trigger
+The fundamental difference lies in when the trigger logic executes relative to the data modification, and whether it can modify the incoming data.
+
+BEFORE Trigger
+Timing: Fires before the incoming INSERT, UPDATE, or DELETE operation is actually written to the table's physical storage.
+
+Primary Purpose: Used for data validation, cleansing, or modification before it is saved. For example, it can check if an input email is lowercase, or intercept an invalid value and raise an error to block the operation entirely.
+
+Data Manipulation: It has the power to modify the incoming row's values on the fly (using the :NEW modifier) before they hit the disk.
+
+AFTER Trigger
+Timing: Fires after the incoming database operation has been successfully written and saved to the table.
+
+Primary Purpose: Used for cascading actions that depend on a successfully completed change, such as updating other tables, generating audit logs, or sending external notifications.
+
+Data Manipulation: It cannot modify the row that triggered it (since that row is already written to disk). The data is read-only at this stage.
+
+4. What are the Risks of Excessive Trigger Usage?
+While highly effective, triggers are notoriously easy to abuse and can severely degrade system health if overused:
+
+Hidden/Invisible Logic ("Black Box" Effect): Triggers run silently behind the scenes. If a software engineer runs a simple UPDATE statement and five other unrelated tables suddenly change, it makes debugging incredibly difficult because the logic isn't visible in the application's source code.
+
+Performance Degradation (Bottlenecks): Triggers run within the same transaction space as the original query. If an INSERT statement fires a trigger that loops through thousands of rows or runs complex logic, it slows down the initial user operation significantly.
+
+Cascading/Mutating Triggers: A trigger on Table A might update Table B, which fires a trigger on Table B that updates Table C. If poorly designed, this can create deep, hard-to-track dependencies or worse—an infinite recursive loop that crashes the database server.
+
+Locking and Concurrency Issues: Triggers often lock additional rows or tables while executing, which can lead to deadlocks in high-traffic enterprise environments.
+
+5. Three Enterprise Use Cases
+Use Case 1: Regulatory Auditing and Security Compliance (Finance)
+The Setup: A bank must comply with strict financial regulations that require a permanent, unalterable trail of any changes made to high-value user profiles or account limits.
+
+The Solution: An AFTER UPDATE Trigger is placed on the Account_Limits table. The moment an employee changes a client's credit limit, the trigger fires, takes the original limit value (:OLD.limit), the new value (:NEW.limit), the employee's system user ID, and the exact timestamp, and writes them into a secure, append-only Audit_Log table. This creates a secure history trail that even application developers cannot bypass.
+
+Use Case 2: Data Cleansing and Standardizing Inputs (E-Commerce)
+The Setup: A global e-commerce platform accepts user sign-ups from web forms, mobile apps, and third-party APIs, often resulting in messy or inconsistently formatted data.
+
+The Solution: A BEFORE INSERT OR UPDATE Trigger is assigned to the Customers table. Before any row is saved, the trigger automatically intercepts the data, trims accidental white spaces from the name, converts the email string completely to lowercase, and verifies that the telephone country code format matches standard regulations. If the format is completely invalid, the trigger blocks the insert entirely, protecting the database from dirty data.
+
+Use Case 3: Real-Time Inventory Control and Reorder Alerts (Logistics)
+The Setup: A massive shipping warehouse manages thousands of product stock levels and must ensure items are reordered before they sell out completely.
+
+The Solution: An AFTER UPDATE Trigger is placed on the Inventory table, specifically watching the quantity_in_stock column. When a sales order deducts inventory and causes the stock to drop below a predefined reorder_threshold, the trigger fires instantly. It creates a new record inside an automated Purchase_Orders_Pending table, alerting the procurement team to restock the product immediately without human intervention.
+
+
+1. What is a Scheduler Job?
+A Scheduler Job (often referred to as a Cron job, Background job, or Database Job) is an automated task configured to execute code or scripts at specific, predefined times or intervals without requiring human intervention.
+
+Unlike event-driven database components, scheduler jobs are time-driven or calendar-driven. They rely on a built-in scheduling engine within the operating system (like Linux cron or Windows Task Scheduler) or directly inside the enterprise database management system (such as DBMS_SCHEDULER in Oracle or SQL Server Agent in MS SQL Server). A job can be scheduled to run every 10 minutes, every night at 2:00 AM, or on the first Sunday of every month.
+
+2. Why Do Companies Use Scheduler Jobs?
+Companies heavily rely on scheduler jobs to orchestrate asynchronous, off-peak background workloads. Key reasons include:
+
+Resource and Performance Management: Heavy operations—like processing payroll, running massive analytical queries, or archiving millions of records—consume immense CPU and memory. Running these during peak business hours would slow down the live applications used by customers. Scheduler jobs allow companies to shift these resource-heavy workloads to off-peak hours (e.g., 3:00 AM).
+
+Complete Automation of Repetitive Work: It eliminates human error and the operational cost of manually executing daily scripts, file transfers, or maintenance routines.
+
+Decoupling and Asynchronous Processing: For tasks that don't need to happen instantly, a system can log the request in a queue, and a scheduler job can process the queue in batches later, keeping the user interface snappy and responsive.
+
+3. Difference Between: Trigger vs. Scheduler Job
+While both automate database actions behind the scenes, their execution models are completely different:
+
+Trigger
+Execution Driver: Event-Driven. It fires instantly when a user or application modifies a table via INSERT, UPDATE, or DELETE.
+
+Context: Runs synchronously within the exact same database transaction as the user's active query. If the trigger fails or runs slowly, the user's web page or app freezes or fails.
+
+Scope: Micro-level. It handles immediate, immediate constraints, input validation, or line-by-line audit logging.
+
+Scheduler Job
+Execution Driver: Time-Driven. It executes based on a calendar schedule, time interval, or a manually triggered background clock.
+
+Context: Runs completely asynchronously in its own independent background session. If a scheduler job runs slowly, it has zero immediate impact on active users browsing an application.
+
+Scope: Macro-level. It handles bulk data operations, long-running processing, cleanup scripts, and structural maintenance tasks.
+
+4. What Processes are Commonly Automated?
+Enterprises typically offload four major categories of operations to background schedulers:
+
+Data Backups & Disaster Recovery: Creating logical database dumps, exporting transaction logs, and shipping backup files to secure cloud storage buckets.
+
+System Maintenance & Optimization: Rebuilding fragmented database indexes, updating query optimizer statistics, clearing temporary cache tables, and rotating system logs.
+
+Bulk Data Synchronization (ETL): Extracting raw data from operational transactional systems, transforming it, and loading it into centralized Data Warehouses for Business Intelligence.
+
+Communications & Notifications: Sending out bulk promotional emails, monthly digital bank statements, subscription renewal alerts, and low-inventory warnings.
+
+5. Three Enterprise Use Cases
+Use Case 1: Subscription Billing & Credit Card Invoicing (SaaS Platforms)
+The Setup: A software-as-a-service (SaaS) company charges its corporate clients on a monthly subscription cycle. Individual user accounts expire on different days of the month depending on when they initially signed up.
+
+How the Job Works: A Scheduler Job runs every single night at 12:05 AM. It executes a procedure that scans the database for accounts whose next_billing_date = CURRENT_DATE. For every matching record, it contacts the payment gateway API to charge the registered credit card. If successful, it updates the account's expiration date; if it fails, it flags the account for automatic past-due notifications.
+
+Use Case 2: Data Purging and Cold-Storage Archiving (E-Commerce)
+The Setup: An enterprise e-commerce system generates millions of temporary records, shopping cart session logs, and tracking data daily. Keeping all this transactional data in the main active table forever bloats the database size, slows down user product searches, and spikes cloud hosting costs.
+
+How the Job Works: A Scheduler Job is configured to run on the 1st of every month at 2:00 AM (during lowest traffic). The job runs a script that identifies all completed order records older than 2 years. It safely copies these rows out of the high-speed production database into a cheap, slow "Cold Storage" historical database, and then permanently deletes (PURGE) the rows from the active table, keeping the main database clean and highly performant.
+
+Use Case 3: Automated Daily Currency Rate Syncing (Global Banking / Retail)
+The Setup: A multi-currency enterprise operates across different regional markets and requires accurate, daily-updated foreign exchange (FX) currency rates to calculate correct international prices and financial reports.
+
+How the Job Works: Every morning at 6:00 AM before markets open, an integrated Scheduler Job triggers. It establishes a secure HTTP REST API connection to an authorized central banking authority (e.g., the European Central Bank or a local Central Bank API). The job downloads the latest official exchange rates JSON file, parses the data, and runs an UPDATE batch against the internal Currency_Exchange_Rates reference table, ensuring all point-of-sale systems worldwide use synchronized financial data for the day.
+
+
